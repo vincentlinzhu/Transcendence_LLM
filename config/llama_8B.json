@@ -1,0 +1,26 @@
+{
+    "block_size": 1024,
+    "recent_context": 20,
+    "add_prompt": true,
+    "n_layer": 3,
+    "n_head": 1,
+    "n_embd": 64,
+    "dropout": 0,
+    "bias": true,
+    "seed": 42,
+    "wandb": false,
+    "wandb_project": "llama_8B",
+    "wandb_run_name": "temp_sampling",
+    "model_name": "meta-llama/Llama-Guard-3-8B-INT8",
+    "device": "cpu",
+    "temperatures": [
+        0.001,
+        0.01,
+        0.1,
+        0.3,
+        0.5,
+        0.75,
+        1,
+        1.5
+    ]
+}
