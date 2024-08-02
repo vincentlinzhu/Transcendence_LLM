@@ -5,36 +5,33 @@ PYTHON := python
 PYTHONPATH := `pwd`
 CONDA := conda
 CONDA_ACTIVATE = source $$(conda info --base)/etc/profile.d/conda.sh ; conda activate ; conda activate
-
 #* Installation
 .PHONY: install
 install:
-	! type -P $(CONDA) &> /dev/null && { echo "Please install conda (https://docs.conda.io/en/latest/miniconda.html)"; exit 1; }
-	# ! type -P pipx &> /dev/null && { echo "Please install pipx (https://github.com/pypa/pipx)"; exit 1; }
-	! type -P pipx &> /dev/null && python -m pip install pipx
+	type -P $(CONDA) &> /dev/null || { echo "Please install conda (https://docs.conda.io/en/latest/miniconda.html)"; exit 1; }
+	type -P pipx &> /dev/null || python -m pip install pipx
 
 	# TODO ensure version of poetry is correct
-	! type -P poetry &> /dev/null && pipx install poetry==1.7.1
+	type -P poetry &> /dev/null || pipx install poetry==1.8.3
 
-	if ! { conda list --name 'py311'; } >/dev/null 2>&1; 
-	then
-		# create py311 conda environment
-		$(CONDA) create -n py311 python=3.11 -y
+	git submodule update --init --recursive
+
+	# create py311 conda environment
+	if ! { conda list --name 'py311'; } >/dev/null 2>&1; then\
+		$(CONDA) create -n py311 python=3.11 -y;\
 	fi
 
-	$(CONDA_ACTIVATE) py311
-	#$(CONDA) deactivate # ensures there exists a python3.11 for use, but will instead a virtualenv in the project directory at .venv
+	$(CONDA_ACTIVATE) py311; type python
 
-	type python
 	rm -rf .venv
-	python -m venv .venv
-	source .venv/bin/activate
+	$(CONDA_ACTIVATE) py311; python -m venv .venv
+	source .venv/bin/activate; type python
 
-	type python
-	poetry lock -n && poetry export --without-hashes > requirements.txt
-	poetry install -n
-	poetry run pre-commit install
-	# # poetry run mypy --install-types --non-interactive ./ 
+
+	source .venv/bin/activate; poetry lock -n && poetry export --without-hashes > requirements.txt
+	source .venv/bin/activate; poetry install -n
+	source .venv/bin/activate; poetry run pre-commit install
+	# source .venv/bin/activate; poetry run mypy --install-types --non-interactive ./ 
 
 #* Linting
 .PHONY: lint
