@@ -31,7 +31,6 @@ import requests
 
 load_dotenv()
 
-
 def load_eval_dataset(dataset_name="squad_v2"):
     # Load the SQuAD v2 dataset by default
     file_path = "Meta-Llama-3.1-8B-evals/Details_squad_2024-07-22T14-58-08.291117.parquet.gzip"
@@ -55,32 +54,40 @@ def get_model_prediction(client, prompt, temperature=1.0, max_tokens=3500):
         )
         # Extract the response content
         answer = response.get("choices", [{}])[0].get("message", {}).get("content", "")
+        answer = answer.split("\n\n")[0].strip()
 
     except Exception as e:
         print(f"Error during inference: {e}")
         answer = ""
     return answer
     
+    
 def get_model_prediction_API(model_api, prompt, temperature=1.0):
     # API_URL = "https://api-inference.huggingface.co/models/openai-community/gpt2"
+    token = os.getenv(f'HUGGINGFACE_HUB_TOKEN_2')
     API_URL = model_api
-    headers = {"Authorization": f"Bearer {os.getenv('HUGGINGFACE_HUB_TOKEN')}"}
+    headers = {"Authorization": f"Bearer {token}"}
     payload = {
         "inputs": prompt, 
+        "options": {
+            "wait_for_model": True
+        },
         "parameters": {
             "temperature": temperature  # Set your desired temperature here
         }
     }
     response = requests.post(API_URL, headers=headers, json=payload)
-    return response.json()[0]['generated_text'].split(prompt)[1].split("\n\n")[0].strip()
+    prediction = response.json()[0]['generated_text'].split(prompt)[1].split("\n\n")[0].strip()
+    return prediction
 
 
 # def evaluate_predictions(client, eval_dataset, squad_metric, temperatures=[0, 0.5, 1.0]):
-def evaluate_predictions(model_api, eval_dataset, squad_metric, temperatures=[0, 0.5, 1.0]):
+def evaluate_predictions(cfg, model_api, eval_dataset, squad_metric, temperatures=[0, 0.5, 1.0]):
+    og_eval_dataset = eval_dataset
     results = defaultdict(list)
     
-    for seed in range(1):
-        eval_dataset = eval_dataset.select(range(seed*25, seed*25+25))
+    for seed in range(3, 4):
+        eval_dataset = og_eval_dataset.select(range(seed*25, seed*25+25))
         for temp in temperatures:
             predictions = []
             references = []
@@ -96,7 +103,7 @@ def evaluate_predictions(model_api, eval_dataset, squad_metric, temperatures=[0,
                 references.append({"id": str(i), "answers": {"answer_start": [0], "text": reference_answers}})
                     
                 # Sleep to avoid hitting rate limits
-                time.sleep(0.5)  # Adjust based on API rate limits
+                time.sleep(0.3)  # Adjust based on API rate limits
 
             # Compute metrics
             metric_result = squad_metric.compute(predictions=predictions, references=references)
@@ -104,7 +111,8 @@ def evaluate_predictions(model_api, eval_dataset, squad_metric, temperatures=[0,
         
             time.sleep(60)
         
-    
+        with open(f"cached_eval_res_{cfg.model_name}_3.pkl", "wb") as fin:
+            pickle.dump(results, fin)
     return results
 
 
@@ -114,23 +122,23 @@ def plot_f1_scores(evaluation_results, cfg: Config):
     import numpy as np
 
     
-    # # Process Results
-    # formatted_data = defaultdict(list)
-    # for temp, metrics_list in evaluation_results.items():
-    #     for metric in metrics_list:
-    #         formatted_data[temp].append(metric['f1'])
+    # Process Results
+    formatted_data = defaultdict(list)
+    for temp, metrics_list in evaluation_results.items():
+        for metric in metrics_list:
+            formatted_data[temp].append(metric['f1'])
 
-    # # Create a DataFrame with some data
-    # df = pd.DataFrame(formatted_data)
-    # print(df)
+    # Create a DataFrame with some data
+    df = pd.DataFrame(formatted_data)
+    print(df)
     
     # Mock Data:
-    data = {
-        0.001: [4.5, 3.8, 4.4, 5.2, 4.7],
-        0.5: [3.3, 3.1, 2.2, 3.2, 2.9],
-        1: [2.1, 1.3, 2.8, 1.5, 1.9]
-    }
-    df = pd.DataFrame(data, index=[1, 2, 3, 4, 5])
+    # data = {
+    #     0.001: [4.5, 3.8, 4.4, 5.2, 4.7],
+    #     0.5: [3.3, 3.1, 2.2, 3.2, 2.9],
+    #     1: [2.1, 1.3, 2.8, 1.5, 1.9]
+    # }
+    # df = pd.DataFrame(data, index=[1, 2, 3, 4, 5])
     
     # Calculate mean and standard deviation
     means = df.mean()
@@ -139,13 +147,13 @@ def plot_f1_scores(evaluation_results, cfg: Config):
 
 
     # Create the x-axis labels from the DataFrame columns
-    x_labels = df.columns.astype(str)
+    x_labels = df.columns
     title  ='Mean F1-Scores by Temperature'
     
     # Plotting
     plt.figure(figsize=(10, 6))
     # plt.errorbar(x_labels, means, yerr=stds, fmt='-o', capsize=5, capthick=2, label=f'Model: {cfg.model_name}')
-    plt.plot(x_labels, means, '-o', label=f'Model: {cfg.model_name}')
+    plt.plot(x_labels, means, label=f'Model: {cfg.model_name}')
     plt.fill_between(x_labels, (means - sem), (means + sem), alpha=0.2)
     
     plt.title(f"{title}")
@@ -166,7 +174,7 @@ def run_llm(cfg: Config):
             config=dataclasses.asdict(cfg),
         )
     
-    login(token=os.getenv("HUGGINGFACE_HUB_TOKEN"))
+    login(token=os.getenv("HUGGINGFACE_HUB_TOKEN_2"))
     # client = load_client(cfg)
     dataset = load_eval_dataset(dataset_name="meta-llama/Meta-Llama-3.1-8B-evals")
 
@@ -180,17 +188,35 @@ def run_llm(cfg: Config):
     #     print(f"Temperature {temp}: F1 = {metrics['f1']}, EM = {metrics['exact']}")
     
     # Save Evaluation Results:
-    # if os.path.exists(f"cached_eval_res_{cfg.model_name}.pkl"):
+    # if os.path.exists(f"cached_eval_res_{cfg.model_name}_3.pkl"):
     #     evaluation_results = pickle.load(
-    #         open(f"cached_eval_res_{cfg.model_name}.pkl", "rb")
+    #         open(f"cached_eval_res_{cfg.model_name}_3.pkl", "rb")
     #     )
     # else:
-    #     evaluation_results = {}
-    #     evaluation_results = evaluate_predictions(cfg.model_api, dataset, squad_metric, temperatures=cfg.temperatures)
-    #     with open(f"cached_eval_res_{cfg.model_name}.pkl", "wb") as fin:
-    #         pickle.dump(evaluation_results, fin)
-        
     evaluation_results = {}
+    evaluation_results = evaluate_predictions(cfg, cfg.model_api, dataset, squad_metric, temperatures=cfg.temperatures)
+        # with open(f"cached_eval_res_{cfg.model_name}_3.pkl", "wb") as fin:
+        #     pickle.dump(evaluation_results, fin)
+        
+            
+    evaluation_results = {}
+    evaluation_results_0 = pickle.load(
+        open(f"cached_eval_res_{cfg.model_name}_0.pkl", "rb")
+    )
+    evaluation_results_1_2 = pickle.load(
+        open(f"cached_eval_res_{cfg.model_name}_1_2.pkl", "rb")
+    )
+    evaluation_results_3 = pickle.load(
+        open(f"cached_eval_res_{cfg.model_name}_3.pkl", "rb")
+    )
+    
+    for temp, metrics in evaluation_results_0.items():
+        evaluation_results[temp] = metrics
+    for temp, metrics in evaluation_results_1_2.items():
+        evaluation_results[temp] += metrics
+    for temp, metrics in evaluation_results_3.items():
+        evaluation_results[temp] += metrics
+    
     plot_f1_scores(evaluation_results, cfg)    
         
     if cfg.wandb:
