@@ -79,7 +79,7 @@ def get_model_prediction_API(model_api, prompt, temperature=1.0):
 def evaluate_predictions(model_api, eval_dataset, squad_metric, temperatures=[0, 0.5, 1.0]):
     results = defaultdict(list)
     
-    for seed in range(10):
+    for seed in range(1):
         eval_dataset = eval_dataset.select(range(seed*25, seed*25+25))
         for temp in temperatures:
             predictions = []
@@ -111,36 +111,43 @@ def evaluate_predictions(model_api, eval_dataset, squad_metric, temperatures=[0,
 def plot_f1_scores(evaluation_results, cfg: Config):
     import matplotlib.pyplot as plt
     import pandas as pd
-    
-    # Process Results
-    formatted_data = defaultdict(list)
-    for temp, metrics_list in evaluation_results.items():
-        for metric in metrics_list:
-            formatted_data[temp].append(metric['f1'])
+    import numpy as np
 
-    # Create a DataFrame with some data
-    df = pd.DataFrame(formatted_data)
-    print(df)
+    
+    # # Process Results
+    # formatted_data = defaultdict(list)
+    # for temp, metrics_list in evaluation_results.items():
+    #     for metric in metrics_list:
+    #         formatted_data[temp].append(metric['f1'])
+
+    # # Create a DataFrame with some data
+    # df = pd.DataFrame(formatted_data)
+    # print(df)
     
     # Mock Data:
-    # data = {
-    #     0.001: [4.5, 3.8, 4.4, 5.2, 4.7],
-    #     0.5: [3.3, 3.1, 2.2, 3.2, 2.9],
-    #     1: [2.1, 1.3, 2.8, 1.5, 1.9]
-    # }
-    # df = pd.DataFrame(data, index=[1, 2, 3, 4, 5])
+    data = {
+        0.001: [4.5, 3.8, 4.4, 5.2, 4.7],
+        0.5: [3.3, 3.1, 2.2, 3.2, 2.9],
+        1: [2.1, 1.3, 2.8, 1.5, 1.9]
+    }
+    df = pd.DataFrame(data, index=[1, 2, 3, 4, 5])
     
     # Calculate mean and standard deviation
     means = df.mean()
     stds = df.std()
+    sem = stds / np.sqrt(df.shape[0])
+
 
     # Create the x-axis labels from the DataFrame columns
-    x_labels = df.columns
+    x_labels = df.columns.astype(str)
     title  ='Mean F1-Scores by Temperature'
     
     # Plotting
     plt.figure(figsize=(10, 6))
-    plt.errorbar(x_labels, means, yerr=stds, fmt='-o', capsize=5, capthick=2, label=f'Model: {cfg.model_name}')
+    # plt.errorbar(x_labels, means, yerr=stds, fmt='-o', capsize=5, capthick=2, label=f'Model: {cfg.model_name}')
+    plt.plot(x_labels, means, '-o', label=f'Model: {cfg.model_name}')
+    plt.fill_between(x_labels, (means - sem), (means + sem), alpha=0.2)
+    
     plt.title(f"{title}")
     plt.xlabel('Temperature')
     plt.ylabel('F1-Score')
@@ -173,17 +180,17 @@ def run_llm(cfg: Config):
     #     print(f"Temperature {temp}: F1 = {metrics['f1']}, EM = {metrics['exact']}")
     
     # Save Evaluation Results:
-    if os.path.exists(f"cached_eval_res_{cfg.model_name}.pkl"):
-        evaluation_results = pickle.load(
-            open(f"cached_eval_res_{cfg.model_name}.pkl", "rb")
-        )
-    else:
-        evaluation_results = {}
-        evaluation_results = evaluate_predictions(cfg.model_api, dataset, squad_metric, temperatures=cfg.temperatures)
-        with open(f"cached_eval_res_{cfg.model_name}.pkl", "wb") as fin:
-            pickle.dump(evaluation_results, fin)
+    # if os.path.exists(f"cached_eval_res_{cfg.model_name}.pkl"):
+    #     evaluation_results = pickle.load(
+    #         open(f"cached_eval_res_{cfg.model_name}.pkl", "rb")
+    #     )
+    # else:
+    #     evaluation_results = {}
+    #     evaluation_results = evaluate_predictions(cfg.model_api, dataset, squad_metric, temperatures=cfg.temperatures)
+    #     with open(f"cached_eval_res_{cfg.model_name}.pkl", "wb") as fin:
+    #         pickle.dump(evaluation_results, fin)
         
-    # evaluation_results = {}
+    evaluation_results = {}
     plot_f1_scores(evaluation_results, cfg)    
         
     if cfg.wandb:
