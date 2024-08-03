@@ -9,18 +9,14 @@
     "bias": true,
     "seed": 42,
     "wandb": false,
-    "wandb_project": "llama_8B",
+    "wandb_project": "Transcendence_Base_LLM_Domain",
     "wandb_run_name": "temp_sampling",
-    "model_name": "meta-llama/Llama-Guard-3-8B-INT8",
+    "model_api": "https://api-inference.huggingface.co/models/openai-community/gpt2",
+    "model_name": "GPT-2",
     "device": "cpu",
     "temperatures": [
         0.001,
-        0.01,
-        0.1,
-        0.3,
         0.5,
-        0.75,
-        1,
-        1.5
+        1
     ]
 }

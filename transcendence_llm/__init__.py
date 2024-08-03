@@ -65,6 +65,7 @@ class Config:
     wandb: bool = False
     wandb_project: str = ""
     wandb_run_name: str = ""
+    model_api: str = ""
     model_name: str = ""
     device: str = ""
     temperatures: List[float] = field(default_factory=lambda: [0.01, 0.1])
