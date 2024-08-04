@@ -32,6 +32,7 @@ from transcendence_llm.utils import (
     get_model_prediction_local,
     get_valid_samples,
     generate_bootstrap_sample,
+    generate_sequential_sample,
     combine_all_temperature,
     evaluate_predictions,
     partial_f1_score,
@@ -69,26 +70,21 @@ def run_llm(cfg: Config):
     ############################################
     predictions = defaultdict(list)
     references = defaultdict(list)
-    for bootstrap_sample in range(1001):
+    eval_dataset = generate_sequential_sample(og_eval_dataset, 1000, valid_indices)
+    for i, example in enumerate(eval_dataset):
         og_eval_dataset = eval_dataset
-    
-        eval_dataset = generate_bootstrap_sample(og_eval_dataset, 1, valid_indices)
         for temp in tqdm(cfg.temperatures):
-            example = eval_dataset[0] # only 1 example sampled at a time
-
             prompt = example['input_final_prompts'][0] # Prompt in string form
             reference_answers = example['output_parsed_answer'] # List of reference answers
-            
             answer = get_model_prediction_local(cfg, prompt, temperature=temp)
-            
             processed_answer = answer.lower()
 
             predictions[temp].append({"id": example['input_question_hash'], "prediction_text": processed_answer, 'no_answer_probability': 0.0})
             references[temp].append({"id": example['input_question_hash'], "answers": {"answer_start": [0], "text": reference_answers}})
         
-        if bootstrap_sample % 100 == 0 and bootstrap_sample > 0:
-            which_hundred = bootstrap_sample // 100
-            print(f"[bold red]Saving Iteration {bootstrap_sample}")
+        if (i % 100 == 0 and i > 0) or i == 999:
+            which_hundred = i // 100
+            print(f"[bold red]Saving Iteration {i}")
             with open(f"sa_predictions_{cfg.model_name}_{which_hundred}.pkl", "wb") as fin:
                 pickle.dump(predictions, fin)
             with open(f"sa_references_{cfg.model_name}_{which_hundred}.pkl", "wb") as fin:
@@ -101,7 +97,7 @@ def run_llm(cfg: Config):
     ############################################
     # Attempt 2:
     ############################################
-    # for bootstrap_sample in range(801):
+    # for bootstrap_sample in range(1001):
     #     bootstrap_res = evaluate_predictions(valid_indices, bootstrap_sample, cfg, cfg.model_api, dataset, squad_metric, temperatures=cfg.temperatures)
     #     for temp, metrics in bootstrap_res.items():
     #         if temp not in evaluation_results:
@@ -111,6 +107,7 @@ def run_llm(cfg: Config):
                 
     #     if bootstrap_sample % 100 == 0 and bootstrap_sample > 0:
     #         which_hundred = bootstrap_sample // 100
+    #         which_hundred += 8
     #         print(f"[bold red]Saving Iteration {bootstrap_sample}")
     #         with open(f"single_eval_res_{cfg.model_name}_{which_hundred}.pkl", "wb") as fin:
     #             pickle.dump(evaluation_results, fin)

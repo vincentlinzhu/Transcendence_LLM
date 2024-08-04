@@ -140,6 +140,17 @@ def generate_bootstrap_sample(dataset, sample_size, valid_indices):
     return dataset.select(random_sample_indices)
 
 
+def generate_sequential_sample(dataset, sample_size, valid_indices):
+    # Ensure there are enough valid samples to draw from
+    if len(valid_indices) < sample_size:
+        raise ValueError("Not enough valid samples with prompts less than 900 tokens.")
+
+    # Select the first `sample_size` indices from the valid indices
+    sequential_sample_indices = valid_indices[:sample_size]
+    # Select and return the sequential sample
+    return dataset.select(sequential_sample_indices)
+
+
 def combine_all_temperature(cfg, bootstrap_sample):
     results = {}
     result_dict_0 = pickle.load(
@@ -254,18 +265,18 @@ def plot_f1_scores(evaluation_results, cfg: Config):
     import pandas as pd
     import numpy as np
 
-    df = pd.DataFrame(evaluation_results)
-    print(df)
-    
-    # # Process Results
-    # formatted_data = defaultdict(list)
-    # for temp, metrics_list in evaluation_results.items():
-    #     for metric in metrics_list:
-    #         formatted_data[temp].append(metric['f1'])
-
-    # # Create a DataFrame with some data
-    # df = pd.DataFrame(formatted_data)
+    # df = pd.DataFrame(evaluation_results)
     # print(df)
+    
+    # Process Results
+    formatted_data = defaultdict(list)
+    for temp, metrics_list in evaluation_results.items():
+        for metric in metrics_list:
+            formatted_data[temp].append(metric['f1'])
+
+    # Create a DataFrame with some data
+    df = pd.DataFrame(formatted_data)
+    print(df)
     
     # Mock Data:
     # data = {
