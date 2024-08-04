@@ -12,12 +12,14 @@
     "wandb_project": "Transcendence_Base_LLM_Domain",
     "wandb_run_name": "temp_sampling",
     "model_api": "https://api-inference.huggingface.co/models/openai-community/gpt2",
-    "model_name": "GPT-2",
+    "model_name": "gpt2",
     "device": "cpu",
     "temperatures": [
         0.001,
+        0.01,
         0.3,
         0.75,
+        1,
         1.5
     ]
 }
