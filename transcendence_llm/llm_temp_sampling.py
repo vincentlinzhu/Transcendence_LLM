@@ -23,6 +23,7 @@ import requests
 import numpy as np
 import tiktoken
 from fuzzywuzzy import fuzz
+import ollama
 
 from transcendence_llm.utils import (
     load_eval_dataset,
@@ -47,6 +48,11 @@ os.environ["token_num"] = "0"
 token_num = os.environ["token_num"]
 os.environ["token"] = os.getenv(f"HUGGINGFACE_HUB_TOKEN_{token_num}")
 
+
+def generate_llm(prompt: str, model: str = "llama3.1", temperature=0.01) -> str:
+    return ollama.generate1(
+        model=model, prompt=prompt, options=ollama.Options(temperature=temperature, num_predict=32)
+    )["response"]
 
 
 def run_llm(cfg: Config):
@@ -83,7 +89,8 @@ def run_llm(cfg: Config):
         for temp in cfg.temperatures:
             prompt = example['input_question'] # Prompt in string form
             reference_answers = example['input_correct_responses'] # List of reference answers
-            answer = get_model_prediction_local(model, tokenizer, cfg, prompt, temperature=temp)
+            # answer = get_model_prediction_local(model, tokenizer, cfg, prompt, temperature=temp)
+            answer = generate_llm(prompt, temperature=temp)
             processed_answer = answer.lower()
 
             predictions[temp].append({"id": example['input_question_hash'], "prediction_text": processed_answer, 'no_answer_probability': 0.0})
