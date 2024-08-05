@@ -68,7 +68,7 @@ class Config:
     model_api: str = ""
     model_name: str = ""
     device: str = ""
-    temperatures: List[float] = field(default_factory=lambda: [0.01, 0.1])
+    temperatures: List[float] = field(default_factory=lambda: [0.01, 1.0])
 
 
 def main():

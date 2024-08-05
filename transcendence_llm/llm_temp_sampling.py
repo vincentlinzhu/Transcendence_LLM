@@ -23,6 +23,7 @@ import requests
 import numpy as np
 import tiktoken
 from fuzzywuzzy import fuzz
+import ollama
 
 from transcendence_llm.utils import (
     load_eval_dataset,
@@ -48,19 +49,31 @@ token_num = os.environ["token_num"]
 os.environ["token"] = os.getenv(f"HUGGINGFACE_HUB_TOKEN_{token_num}")
 
 
+def generate_llm(prompt: str, model: str = "llama3.1", temperature=.01) -> str:
+    ollama.generate(
+        model=model, prompt=prompt, options=ollama.Options(temperature=temperature)
+    )["response"]
 
 def run_llm(cfg: Config):
-    if cfg.wandb:
-        wandb.init(
-            project=cfg.wandb_project,
-            entity="project-eval",
-            name=cfg.wandb_run_name,
-            config=dataclasses.asdict(cfg),
-        )
+    # if cfg.wandb:
+    #     wandb.init(
+    #         project=cfg.wandb_project,
+    #         entity="project-eval",
+    #         name=cfg.wandb_run_name,
+    #         config=dataclasses.asdict(cfg),
+    #     )
     
     login(token=os.environ["token"])
+    response = ollama.chat(model='llama3.1', messages=[
+    {
+        'role': 'user',
+        'content': 'Why is the sky blue?',
+    },
+    ])
+    print(response['message']['content'])
+    breakpoint()
     # client = load_client(cfg)
-    dataset = load_eval_dataset(dataset_name="meta-llama/Meta-Llama-3.1-8B-evals")
+    dataset = load_eval_dataset(dataset_name=)
     squad_metric = load("squad_v2")
     evaluation_results = {}
     valid_indices = get_valid_samples(dataset)

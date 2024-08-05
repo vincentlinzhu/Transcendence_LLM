@@ -10,6 +10,9 @@ python = "^3.11,<3.12"
 python-dotenv = "^1.0.0"
 wandb = "^0.16.2"
 eztils = "^0.4.98"
+ollama = "^0.3.1"
+datasets = "^2.20.0"
+huggingface-hub = "^0.24.5"
 
 [build-system]
 build-backend = "poetry.core.masonry.api"

@@ -25,8 +25,9 @@ import tiktoken
 from fuzzywuzzy import fuzz
 
 
-def load_eval_dataset(dataset_name="squad_v2"):
+def load_eval_dataset():
     # Load the SQuAD v2 dataset by default
+    dataset_name = 'meta-llama/Meta-Llama-3.1-8B-evals'
     file_path = "Meta-Llama-3.1-8B-evals/Details_squad_2024-07-22T14-58-08.291117.parquet.gzip"
     dataset = load_dataset(dataset_name, data_files=file_path, split="train")
     return dataset
@@ -57,8 +58,8 @@ def get_model_prediction(client, prompt, temperature=1.0, max_tokens=3500):
     #     print(f"Error during inference: {e}")
     #     answer = ""
     return answer
-    
-    
+
+
 def get_model_prediction_API(model_api, prompt, temperature=1.0):
     # API_URL = "https://api-inference.huggingface.co/models/openai-community/gpt2"
     token = os.environ["token"]
@@ -258,7 +259,7 @@ def visualize(cfg: Config):
     bootstrap_results.update(bootstrap_results_10)
 
     plot_f1_scores(bootstrap_results, cfg)
-    
+
 
 def plot_f1_scores(evaluation_results, cfg: Config):
     import matplotlib.pyplot as plt
