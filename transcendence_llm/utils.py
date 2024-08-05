@@ -88,27 +88,29 @@ def get_model_prediction_API(model_api, prompt, temperature=1.0):
         return get_model_prediction_API(model_api, prompt, temperature)
 
 
-def get_model_prediction_local(cfg, prompt, temperature=2.0, max_new_tokens=100):
-    # Load the pre-trained model and tokenizer from Hugging Face
-    model_name = cfg.model_name  # Specify the model name
-    tokenizer = GPT2Tokenizer.from_pretrained(model_name)
-    model = GPT2LMHeadModel.from_pretrained(model_name)
-
-    # Move model to GPU if available
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = model.to(device)
+def get_model_prediction_local(model, tokenizer, cfg, prompt, temperature=2.0, max_new_tokens=100):
+    # Check if a GPU is available and move the model to the GPU
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
-    # Encode the prompt and move to GPU
-    input_ids = tokenizer.encode(prompt, return_tensors="pt").to(device)
+   # Ensure the tokenizer has a pad token
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token  # Set pad token to EOS token if not set
+
+    # Encode the prompt and create attention mask
+    encoded_input = tokenizer(prompt, return_tensors="pt", padding=True, truncation=True)
+    input_ids = encoded_input['input_ids'].to(cfg.device)
+    attention_mask = encoded_input['attention_mask'].to(cfg.device)
 
     # Generate text with sampling enabled
     with torch.no_grad():
         output = model.generate(
             input_ids,
+            attention_mask=attention_mask,
             max_length=100 + len(input_ids[0]),  # Add max_new_tokens to prompt length
             temperature=temperature,
             do_sample=True,  # Enable sampling to use temperature
-            num_return_sequences=1
+            num_return_sequences=1,
+            pad_token_id=tokenizer.pad_token_id
         )
 
     # Decode the generated text and strip the prompt
@@ -251,7 +253,7 @@ def evaluate_model_output(cfg: Config):
 def visualize(cfg: Config):
     bootstrap_results = {}
     bootstrap_results_10 = pickle.load(
-        open(f"single_eval_res_{cfg.model_name}_7.pkl", "rb")
+        open(f"single_eval_res_{cfg.model_name}_8.pkl", "rb")
     )
     
     # bootstrap_results.update(bootstrap_results_200)
