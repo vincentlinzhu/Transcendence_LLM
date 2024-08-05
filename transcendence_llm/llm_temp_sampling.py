@@ -81,8 +81,8 @@ def run_llm(cfg: Config):
     eval_dataset = generate_sequential_sample(dataset, 1000, valid_indices)
     for i, example in enumerate(tqdm(eval_dataset, desc="Processing examples")):
         for temp in cfg.temperatures:
-            prompt = example['input_final_prompts'][0] # Prompt in string form
-            reference_answers = example['output_parsed_answer'] # List of reference answers
+            prompt = example['input_question'] # Prompt in string form
+            reference_answers = example['input_correct_responses'] # List of reference answers
             answer = get_model_prediction_local(model, tokenizer, cfg, prompt, temperature=temp)
             processed_answer = answer.lower()
 

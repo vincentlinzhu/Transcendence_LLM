@@ -14,9 +14,7 @@ import wandb
 import torch
 from transcendence_llm import Config
 from huggingface_hub import InferenceClient, login
-from transformers import GPT2LMHeadModel, GPT2Tokenizer
 from datasets import load_dataset
-from evaluate import load
 from collections import defaultdict
 import pickle
 import requests
@@ -89,10 +87,7 @@ def get_model_prediction_API(model_api, prompt, temperature=1.0):
 
 
 def get_model_prediction_local(model, tokenizer, cfg, prompt, temperature=2.0, max_new_tokens=100):
-    # Check if a GPU is available and move the model to the GPU
-    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    
-   # Ensure the tokenizer has a pad token
+    # Ensure the tokenizer has a pad token
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token  # Set pad token to EOS token if not set
 
@@ -106,7 +101,7 @@ def get_model_prediction_local(model, tokenizer, cfg, prompt, temperature=2.0, m
         output = model.generate(
             input_ids,
             attention_mask=attention_mask,
-            max_length=100 + len(input_ids[0]),  # Add max_new_tokens to prompt length
+            max_length=len(input_ids[0]) + max_new_tokens,  # Add max_new_tokens to prompt length
             temperature=temperature,
             do_sample=True,  # Enable sampling to use temperature
             num_return_sequences=1,
@@ -124,7 +119,7 @@ def get_valid_samples(dataset):
     tokenizer = tiktoken.get_encoding("gpt2")
     valid_indices = []
     for i, example in enumerate(dataset):
-        prompt = example['input_final_prompts'][0]
+        prompt = example['input_question']
         input_tokens = tokenizer.encode(prompt)
         if len(input_tokens) < 900:
             valid_indices.append(i)
@@ -190,8 +185,8 @@ def evaluate_predictions(valid_indices, bootstrap_sample, cfg, model_api, eval_d
         # eval_dataset should be size 1
         for i, example in tqdm(enumerate(eval_dataset), total=len(eval_dataset), desc="Processing"):
         
-            prompt = example['input_final_prompts'][0] # Prompt in string form
-            reference_answers = example['output_parsed_answer'] # List of reference answers
+            prompt = example['input_question'] # Prompt in string form
+            reference_answers = example['input_correct_responses'] # List of reference answers
             
             # answer = get_model_prediction(client, prompt, temperature=temp)
             answer = get_model_prediction_API(model_api, prompt, temperature=temp)
