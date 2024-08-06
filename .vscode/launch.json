@@ -8,10 +8,19 @@
             "name": "Python Debugger: Current File with Arguments",
             "type": "debugpy",
             "request": "launch",
-            "program": "transcendence_llm/__init__.py",
+            "program": "scripts/visualize.py",
             "console": "integratedTerminal",
-            "args": "--config /Users/vincentwork/Documents/Transcendence_LLM/config/llama_8B.json",
+            "args": "",
             "justMyCode": false
-        }
+        },
+        // {
+        //     "name": "Python Debugger: Current File with Arguments",
+        //     "type": "debugpy",
+        //     "request": "launch",
+        //     "program": "transcendence_llm/__init__.py",
+        //     "console": "integratedTerminal",
+        //     "args": "--config /Users/vincentwork/Documents/Transcendence_LLM/config/llama_8B.json",
+        //     "justMyCode": false
+        // }
     ]
 }
